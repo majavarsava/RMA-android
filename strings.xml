@@ -1,8 +1,0 @@
-<resources>
-    <string name="app_name">varsava_lv3</string>
-    <string name="hello_miljenko">Hello Miljenko</string>
-    <string name="low">"Too low BMI"</string>
-    <string name="middle">"Ideal BMI"</string>
-    <string name="high">"Too high BMI"</string>
-    <string name="recommended_exercises">Recommended exercises:</string>
-</resources>
