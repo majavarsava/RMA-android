@@ -34,8 +34,8 @@ fun NewElementScreen(
     onNavigateToCheckmark: () -> Unit = {},
     onNavigateToHeart: () -> Unit = {},
     onNavigateToStar: () -> Unit = {},
-    onAddElement: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
-    onBackClick: () -> Unit = {}
+    onAddElement: () -> Unit = {},
+    onNavigateBack: () -> Unit = {}
 ) {
     var elementName by remember { mutableStateOf("") }
     var elementDescription by remember { mutableStateOf("") }
@@ -78,7 +78,7 @@ fun NewElementScreen(
                     contentDescription = "Back",
                     modifier = Modifier
                         .size(24.dp)
-                        .clickable { onBackClick() },
+                        .clickable { onNavigateBack() },
                     colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.60f))
                 )
             }
@@ -293,8 +293,8 @@ fun NewElementScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
-                onClick = { onAddElement(elementName, elementDescription, selectedLevel, imageFile, videoFile) },
+            Button( // elementName, elementDescription, selectedLevel, imageFile, videoFile
+                onClick = { onAddElement() },
                 modifier = Modifier
                     .width(200.dp)
                     .height(50.dp),

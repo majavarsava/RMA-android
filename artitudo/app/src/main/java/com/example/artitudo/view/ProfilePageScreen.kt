@@ -25,8 +25,9 @@ import com.example.artitudo.R
 fun ProfilePageScreen(
     username: String = "placeholder",
     completedElements: Int = 0,
-    onLogoutClick: () -> Unit = {},
-    onCheckLevelClick: () -> Unit = {},
+    //onLogoutClick: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToLeveler: () -> Unit = {},
     onAddElementClick: () -> Unit = {},
     onNavigateToAccount: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
@@ -114,7 +115,7 @@ fun ProfilePageScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = onLogoutClick,
+                    onClick = onNavigateToLogin,
                     modifier = Modifier
                         .width(200.dp)
                         .height(50.dp),
@@ -133,7 +134,7 @@ fun ProfilePageScreen(
 
                 // Check level button
                 Button(
-                    onClick = onCheckLevelClick,
+                    onClick = onNavigateToLeveler,
                     modifier = Modifier
                         .width(200.dp)
                         .height(50.dp),
@@ -188,7 +189,7 @@ fun ProfilePageScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.account),
+                    painter = painterResource(id = R.drawable.account_filled),
                     contentDescription = "Account",
                     modifier = Modifier
                         .size(24.dp)

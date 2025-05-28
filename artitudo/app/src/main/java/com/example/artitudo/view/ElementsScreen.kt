@@ -34,9 +34,9 @@ import com.example.artitudo.R
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import coil.compose.AsyncImage
 
 
 data class Element(
@@ -127,7 +127,9 @@ fun ElementsScreen(
     val levelOptions = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced")
 
     val focusManager = LocalFocusManager.current
-
+    val filteredElements by remember(searchQuery, selectedLevel) {
+        derivedStateOf { getFilteredElements(searchQuery, selectedLevel) }
+    }
 
     Box(
         modifier = Modifier
@@ -141,18 +143,17 @@ fun ElementsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 100.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 18.dp)
+                .padding(bottom = 100.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(25.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp),
+                    .height(90.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -163,17 +164,17 @@ fun ElementsScreen(
                 )
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             SearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp, horizontal = 8.dp),
+                    .padding(vertical = 16.dp, horizontal = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(levelOptions.size) { index ->
@@ -186,8 +187,7 @@ fun ElementsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
+            ElementGrid(elements = filteredElements, onElementClick = onElementClick)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -217,7 +217,7 @@ fun ElementsScreen(
                 )
 
                 Image(
-                    painter = painterResource(id = R.drawable.search),
+                    painter = painterResource(id = R.drawable.search_filled),
                     contentDescription = "Search",
                     modifier = Modifier
                         .size(24.dp)
@@ -271,7 +271,8 @@ fun SearchBar(
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 4.dp)
+            .height(48.dp)
             .onFocusChanged { isFocused = it.isFocused }
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
@@ -287,10 +288,16 @@ fun SearchBar(
             }
         },
         leadingIcon = {
-            Icon(Icons.Default.Search, "Search", tint = Color.Gray)
+            Icon(Icons.Default.Search, "Search", tint = Color.Gray, modifier = Modifier.size(20.dp))
         },
         singleLine = true,
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
+        colors = TextFieldDefaults.colors(
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent
+        )
     )
 }
 
@@ -309,9 +316,69 @@ fun LevelButton(
             contentColor = if (isSelected) Color.White else Color.Black
         ),
         shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.height(40.dp)
+        modifier = Modifier.height(35.dp)
     ) {
         Text(text)
+    }
+}
+
+@Composable
+fun ElementGrid(elements: List<Element>, onElementClick: (Int) -> Unit) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        content = {
+            items(elements.size) { index ->
+                val element = elements[index]
+                GridElementCard(element = element) {
+                    onElementClick(element.id)
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun GridElementCard(element: Element, onElementClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .clickable { onElementClick() }
+            .fillMaxWidth()
+            .aspectRatio(1f), // Make cards square
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF444444))
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            AsyncImage(
+                model = element.image,
+                contentDescription = element.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .align(Alignment.BottomCenter)
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = element.name,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }
 

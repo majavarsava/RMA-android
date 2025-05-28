@@ -24,8 +24,9 @@ import com.example.artitudo.R
 
 @Composable
 fun RegisterScreen(
-    onLoginClick: (String, String, String) -> Unit = { _, _, _ -> },
-    onRegisterClick: () -> Unit = {}
+    //onLoginClick: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {}
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -169,7 +170,8 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { onLoginClick(username, password, password2) },
+            //onClick = { onLoginClick(username, password, password2) },
+            onClick = { onNavigateToProfile() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -203,7 +205,7 @@ fun RegisterScreen(
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { onRegisterClick() }
+            modifier = Modifier.clickable { onNavigateToLogin() }
         )
     }
 }
