@@ -1,5 +1,6 @@
 package com.example.artitudo.view
 
+import com.example.artitudo.ui.theme.backgroundColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,9 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -19,96 +19,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.artitudo.R
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.error
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.artitudo.model.Element
+import com.example.artitudo.viewmodel.AuthViewModel
+import com.example.artitudo.viewmodel.ElementsViewModel
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.res.stringResource
 
 
-data class Element(
-    val id: Int,
-    val name: String,
-    val image: String,
-    val level: String
-)
-
-fun getFilteredElements(query: String, level: String): List<Element> {
-    val allElements = listOf(
-        Element(
-            1,
-            "Fireman Spin",
-            "https://images.pexels.com/photos/6252554/pexels-photo-6252554.jpeg",
-            "Spins"
-        ),
-        Element(
-            2,
-            "Butterfly",
-            "https://images.pexels.com/photos/6253088/pexels-photo-6253088.jpeg",
-            "Beginner"
-        ),
-        Element(
-            3,
-            "Crucifix",
-            "https://images.pexels.com/photos/6604211/pexels-photo-6604211.jpeg",
-            "Intermediate"
-        ),
-        Element(
-            4,
-            "Ayesha",
-            "https://images.pexels.com/photos/6253100/pexels-photo-6253100.jpeg",
-            "Advanced"
-        ),
-        Element(
-            5,
-            "Cross Ankle Release",
-            "https://images.pexels.com/photos/6253074/pexels-photo-6253074.jpeg",
-            "Beginner"
-        ),
-        Element(
-            6,
-            "Gemini",
-            "https://images.pexels.com/photos/6253069/pexels-photo-6253069.jpeg",
-            "Intermediate"
-        ),
-        Element(
-            7,
-            "Brass Monkey",
-            "https://images.pexels.com/photos/6253022/pexels-photo-6253022.jpeg",
-            "Advanced"
-        ),
-        Element(
-            8,
-            "Martini",
-            "https://images.pexels.com/photos/6330756/pexels-photo-6330756.jpeg",
-            "Spins"
-        )
-    )
-
-    return allElements
-        .filter { level == "All" || it.level == level }
-        .filter { it.name.contains(query, ignoreCase = true) }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ElementsScreen(
-    levels: List<String> = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced"),
-    onLevelChange: (Int) -> Unit = {},
-    elements: List<Element> = listOf(), // Replace with real image resources
-    onElementClick: (Int) -> Unit = {},
+    authViewModel: AuthViewModel,
+    elementsViewModel: ElementsViewModel,
+
+    onElementClick: (elementId: String) -> Unit,
 
     onNavigateToAccount: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
@@ -116,27 +56,40 @@ fun ElementsScreen(
     onNavigateToHeart: () -> Unit = {},
     onNavigateToStar: () -> Unit = {}
 ) {
-    // Color definitions
-    val backgroundColor = Color(0xFF333333)
-    val buttonColor = Color(0xFF722F7F)
-    val textColor = Color.White
-    val inactiveButtonColor = Color.LightGray
-
     var selectedLevel by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
-    val levelOptions = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced")
+    val levelOptions = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced", "Other")
 
     val focusManager = LocalFocusManager.current
-    val filteredElements by remember(searchQuery, selectedLevel) {
-        derivedStateOf { getFilteredElements(searchQuery, selectedLevel) }
+    // Collect states from ElementsViewModel
+    val filteredElements by elementsViewModel.filteredElements.collectAsState()
+    val isLoading by elementsViewModel.isLoading.collectAsState()
+    val error by elementsViewModel.error.collectAsState()
+
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    // Apply filters whenever searchQuery or selectedLevel changes
+    LaunchedEffect(searchQuery, selectedLevel) {
+        elementsViewModel.updateFilters(searchQuery, selectedLevel)
     }
 
-    Box(
+    LaunchedEffect(isLoading) {
+        isRefreshing = isLoading
+    }
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            elementsViewModel.fetchAllElementsForFiltering()
+        },
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }) {
                 focusManager.clearFocus()
             }
     ) {
@@ -158,7 +111,7 @@ fun ElementsScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.logotext),
-                    contentDescription = "Name logo",
+                    contentDescription = stringResource(id = R.string.logo_content_description),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
@@ -186,8 +139,18 @@ fun ElementsScreen(
                     )
                 }
             }
-
-            ElementGrid(elements = filteredElements, onElementClick = onElementClick)
+            if (isLoading && filteredElements.isEmpty()) { // Show loading only if list is empty initially
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator(color = Color(0xFF722F7F))
+            } else if (error != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(error!!, color = MaterialTheme.colorScheme.error)
+            } else if (filteredElements.isEmpty() && !isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(stringResource(id=R.string.no_element_for_query), color = Color.White)
+            } else {
+                ElementGrid(elements = filteredElements, onElementClick = onElementClick)
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -209,7 +172,7 @@ fun ElementsScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.account),
-                    contentDescription = "Account",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_account),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToAccount() },
@@ -218,7 +181,7 @@ fun ElementsScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.search_filled),
-                    contentDescription = "Search",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_search),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToSearch() },
@@ -227,7 +190,7 @@ fun ElementsScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.checkmark),
-                    contentDescription = "Checkmark",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_checkmark),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToCheckmark() },
@@ -236,7 +199,7 @@ fun ElementsScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.heart),
-                    contentDescription = "Heart",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_heart),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToHeart() },
@@ -245,7 +208,7 @@ fun ElementsScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.star),
-                    contentDescription = "Star",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_star),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToStar() },
@@ -264,7 +227,6 @@ fun SearchBar(
 ) {
     val purpleColor = Color(0xFF722F7F)
     var isFocused by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
 
     TextField(
         value = query,
@@ -279,16 +241,16 @@ fun SearchBar(
                 color = if (isFocused) purpleColor else Color.Gray,
                 shape = RoundedCornerShape(8.dp)
             ),
-        placeholder = { Text("Pretraži element...") },
+        placeholder = { Text(stringResource(id = R.string.search_for_element), color = Color.Gray) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Close, "Clear", tint = Color.Gray)
+                    Icon(Icons.Default.Close, stringResource(id = R.string.clear_icon), tint = Color.Gray)
                 }
             }
         },
         leadingIcon = {
-            Icon(Icons.Default.Search, "Search", tint = Color.Gray, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Search, stringResource(id = R.string.search_icon), tint = Color.Gray, modifier = Modifier.size(20.dp))
         },
         singleLine = true,
         shape = RoundedCornerShape(8.dp),
@@ -323,7 +285,7 @@ fun LevelButton(
 }
 
 @Composable
-fun ElementGrid(elements: List<Element>, onElementClick: (Int) -> Unit) {
+fun ElementGrid(elements: List<Element>, onElementClick: (elementId: String) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier
@@ -331,15 +293,16 @@ fun ElementGrid(elements: List<Element>, onElementClick: (Int) -> Unit) {
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        content = {
-            items(elements.size) { index ->
-                val element = elements[index]
-                GridElementCard(element = element) {
-                    onElementClick(element.id)
-                }
+    ) {
+        items(
+            items = elements, // The list of elements
+            key = { element -> element.id } // The stable key for each element
+        ) { element -> // The lambda directly gives you each element
+            GridElementCard(element = element) {
+                onElementClick(element.id) // Assuming Element has an 'id' property
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -348,7 +311,7 @@ fun GridElementCard(element: Element, onElementClick: () -> Unit) {
         modifier = Modifier
             .clickable { onElementClick() }
             .fillMaxWidth()
-            .aspectRatio(1f), // Make cards square
+            .aspectRatio(4f/5f),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF444444))
     ) {
@@ -359,7 +322,9 @@ fun GridElementCard(element: Element, onElementClick: () -> Unit) {
                 model = element.image,
                 contentDescription = element.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                placeholder = painterResource(id = R.drawable.logo), // Add a placeholder
+                error = painterResource(id = R.drawable.logo) // Add an error image
             )
             Box(
                 modifier = Modifier

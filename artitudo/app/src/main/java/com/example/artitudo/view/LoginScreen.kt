@@ -1,8 +1,13 @@
 package com.example.artitudo.view
 
+import com.example.artitudo.ui.theme.backgroundColor
+import com.example.artitudo.ui.theme.buttonColor
+import com.example.artitudo.ui.theme.textColor
+import com.example.artitudo.ui.theme.linkColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -12,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -21,27 +28,36 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.artitudo.R
+import com.example.artitudo.viewmodel.AuthViewModel
+import kotlinx.coroutines.delay
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 
 @Composable
 fun LoginScreen(
-    // (String, String) ,  _, _ ->
+    authViewModel: AuthViewModel,
     onNavigateToProfile: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    // Color definitions
-    val backgroundColor = Color(0xFF333333)
-    val buttonColor = Color(0xFF722F7F)
-    val textColor = Color.White
-    val linkColor = Color(0xFF722F7F)
+    var passwordVisible by remember { mutableStateOf(false) }
+    val authError by authViewModel.authError.collectAsState()
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .padding(horizontal = 48.dp),
+            .padding(horizontal = 48.dp)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                focusManager.clearFocus()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -54,7 +70,7 @@ fun LoginScreen(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo",
+                contentDescription = stringResource(id = R.string.logo_content_description),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
             )
@@ -63,7 +79,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Korisničko ime",
+            text = stringResource(id=R.string.label_username),
             color = textColor,
             fontSize = 16.sp,
             modifier = Modifier
@@ -80,7 +96,7 @@ fun LoginScreen(
                 .height(56.dp),
             placeholder = {
                 Text(
-                    text = "Unesite korisničko ime...",
+                    text = stringResource(id=R.string.placeholder_username),
                     color = Color.Gray
                 )
             },
@@ -97,7 +113,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Lozinka",
+            text = stringResource(id=R.string.label_password),
             color = textColor,
             fontSize = 16.sp,
             modifier = Modifier
@@ -114,7 +130,7 @@ fun LoginScreen(
                 .height(56.dp),
             placeholder = {
                 Text(
-                    text = "Unesite lozinku...",
+                    text = stringResource(id=R.string.placeholder_password),
                     color = Color.Gray
                 )
             },
@@ -125,15 +141,32 @@ fun LoginScreen(
                 unfocusedBorderColor = Color.Gray,
                 cursorColor = buttonColor
             ),
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true
+            singleLine = true,
+            trailingIcon = {
+                val image = if (passwordVisible)
+                    Icons.Filled.Visibility
+                else Icons.Filled.VisibilityOff
+
+                // Localized description for accessibility services
+                val description = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
+
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(imageVector = image, contentDescription = description, tint = textColor.copy(alpha = 0.7f))
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button( // username, password
-            onClick = { onNavigateToProfile() },
+            onClick = {
+                focusManager.clearFocus()
+                authViewModel.login(username, password) {
+                    onNavigateToProfile()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -143,18 +176,26 @@ fun LoginScreen(
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(
-                text = "Prijavi se",
+                text = stringResource(id = R.string.button_login),
                 color = textColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
         }
 
+        authError?.let { error ->
+            Text(error, color = MaterialTheme.colorScheme.error)
+            LaunchedEffect(error) { // Auto-clear error after a delay or on next action
+                delay(3000)
+                authViewModel.clearAuthError()
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // Registration text
         Text(
-            text = "Nemate račun?",
+            text = stringResource(id = R.string.text_dont_have_account),
             color = textColor,
             fontSize = 14.sp,
             textAlign = TextAlign.Center
@@ -163,12 +204,14 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "Registrirajte se ovdje.",
+            text = stringResource(id = R.string.link_register_here),
             color = linkColor,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { onNavigateToRegister() }
+            modifier = Modifier.clickable {
+                focusManager.clearFocus()
+                onNavigateToRegister() }
         )
 
     }

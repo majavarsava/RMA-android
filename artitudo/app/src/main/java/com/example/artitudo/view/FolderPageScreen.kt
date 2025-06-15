@@ -1,106 +1,46 @@
 package com.example.artitudo.view
 
+import com.example.artitudo.ui.theme.backgroundColor
+import com.example.artitudo.ui.theme.buttonColor
+import com.example.artitudo.ui.theme.textColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.artitudo.R
-import coil.compose.rememberAsyncImagePainter
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalFocusManager
-import coil.compose.AsyncImage
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.artitudo.FolderNames
+import com.example.artitudo.model.Element
+import com.example.artitudo.viewmodel.AuthViewModel
+import com.example.artitudo.viewmodel.ElementsViewModel
+import com.example.artitudo.viewmodel.UserFolderNames
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.res.stringResource
 
-fun getFilteredFolder(elements: List<Element>, level: String): List<Element> {
-    val elements = listOf(
-        Element(
-            1,
-            "Fireman Spin",
-            "https://images.pexels.com/photos/6252554/pexels-photo-6252554.jpeg",
-            "Spins"
-        ),
-        Element(
-            2,
-            "Butterfly",
-            "https://images.pexels.com/photos/6253088/pexels-photo-6253088.jpeg",
-            "Beginner"
-        ),
-        Element(
-            3,
-            "Crucifix",
-            "https://images.pexels.com/photos/6604211/pexels-photo-6604211.jpeg",
-            "Intermediate"
-        ),
-        Element(
-            4,
-            "Ayesha",
-            "https://images.pexels.com/photos/6253100/pexels-photo-6253100.jpeg",
-            "Advanced"
-        ),
-        Element(
-            5,
-            "Cross Ankle Release",
-            "https://images.pexels.com/photos/6253074/pexels-photo-6253074.jpeg",
-            "Beginner"
-        ),
-        Element(
-            6,
-            "Gemini",
-            "https://images.pexels.com/photos/6253069/pexels-photo-6253069.jpeg",
-            "Intermediate"
-        ),
-        Element(
-            7,
-            "Brass Monkey",
-            "https://images.pexels.com/photos/6253022/pexels-photo-6253022.jpeg",
-            "Advanced"
-        ),
-        Element(
-            8,
-            "Martini",
-            "https://images.pexels.com/photos/6330756/pexels-photo-6330756.jpeg",
-            "Spins"
-        )
-    )
-
-    return elements.filter { level == "All" || it.level == level }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FolderPageScreen(
-    folderName: String = "Folder Name",
-    levels: List<String> = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced"),
-    onLevelChange: (Int) -> Unit = {},
-    elements: List<Element> = listOf(), // Replace with real image resources
-    onElementClick: (Int) -> Unit = {},
+    folderScreenIdentifier: String,
+    elementsViewModel: ElementsViewModel, // Get ElementsViewModel
+    authViewModel: AuthViewModel,
+    onElementClick: (elementId: String) -> Unit = {},
 
     onNavigateToAccount: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
@@ -108,31 +48,80 @@ fun FolderPageScreen(
     onNavigateToHeart: () -> Unit = {},
     onNavigateToStar: () -> Unit = {}
 ) {
-    // Color definitions
-    val backgroundColor = Color(0xFF333333)
-    val buttonColor = Color(0xFF722F7F)
-    val textColor = Color.White
-    val inactiveButtonColor = Color.LightGray
+    val userData by authViewModel.userData.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
     var selectedLevel by remember { mutableStateOf("All") }
-    val levelOptions = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced")
+    val levelOptions = listOf("All", "Spins", "Beginner", "Intermediate", "Advanced", "Other")
 
     val focusManager = LocalFocusManager.current
-    val filteredFolder by remember(selectedLevel, elements) {
-        derivedStateOf { getFilteredFolder(elements, selectedLevel) }
+    val isLoading by elementsViewModel.isLoading.collectAsState()
+    val error by elementsViewModel.error.collectAsState()
+    val isLoadingAuth by authViewModel.isLoading.collectAsState()
+    val errorAuth by authViewModel.authError.collectAsState()
+    val displayError = error ?: errorAuth
+
+    var isRefreshing = isLoading || isLoadingAuth
+
+    val (folderKey, folderNameResId) = remember(folderScreenIdentifier) {
+        when (folderScreenIdentifier) {
+            FolderNames.FAVORITI -> UserFolderNames.FAVORITES to R.string.folder_name_favorites
+            FolderNames.ZELJE -> UserFolderNames.WISHLIST to R.string.folder_name_wishlist
+            FolderNames.USAVRSENI_ELEMENTI -> UserFolderNames.MASTERED to R.string.folder_name_mastered
+            else -> "" to R.string.folder_name_other
+        }
+    }
+    val displayFolderName = stringResource(id = folderNameResId)
+
+    // For bottom bar active state (remains the same)
+    val isFavoritiFolder = folderScreenIdentifier == FolderNames.FAVORITI
+    val isZeljeFolder = folderScreenIdentifier == FolderNames.ZELJE
+    val isUsavrseniFolder = folderScreenIdentifier == FolderNames.USAVRSENI_ELEMENTI
+
+    LaunchedEffect(userData, folderKey) {
+        userData?.let { user ->
+            elementsViewModel.updateUserFolderIds(
+                masteredIds = user.folders[UserFolderNames.MASTERED],
+                favoritesIds = user.folders[UserFolderNames.FAVORITES],
+                wishlistIds = user.folders[UserFolderNames.WISHLIST]
+            )
+        }
+    }
+    val elementsInThisFolder: List<Element> = remember(folderKey,
+        elementsViewModel.elementsForUserFolders.collectAsState().value
+    ) { // Recompute if allElements or folderKey changes
+        elementsViewModel.getElementsForFolder(folderKey)
+    }
+    // Apply level filtering on top of the folder's elements
+    val finalFilteredElements = remember(elementsInThisFolder, selectedLevel) {
+        if (selectedLevel == "All") {
+            elementsInThisFolder
+        } else {
+            elementsInThisFolder.filter { element ->
+                element.level.equals(selectedLevel, ignoreCase = true)
+            }
+        }
+    }
+    LaunchedEffect(isLoading) { // Or a combined loading state if you add one for userData
+        isRefreshing = isLoading
     }
 
-    val isFavoritiFolder = folderName == FolderNames.FAVORITI
-    val isZeljeFolder = folderName == FolderNames.ZELJE
-    val isUsavrseniFolder = folderName == FolderNames.USAVRSENI_ELEMENTI
-
-    Box(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            elementsViewModel.fetchAllElementsForFiltering() // Or your actual element fetch function name
+            currentUser?.uid?.let { userId ->
+                authViewModel.refreshUserData(userId) // Call the new function in AuthViewModel
+            }
+        },
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                focusManager.clearFocus()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }) {
+                focusManager.clearFocus() // Use LocalFocusManager.current
             }
     ) {
         Column(
@@ -152,7 +141,7 @@ fun FolderPageScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = folderName,
+                    text = displayFolderName,
                     style = MaterialTheme.typography.headlineMedium.copy(
                         color = textColor,
                         fontWeight = FontWeight.Bold,
@@ -164,7 +153,7 @@ fun FolderPageScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Broj elemenata: ${filteredFolder.size}",
+                    text = "${stringResource(id = R.string.number_of_elements)} ${finalFilteredElements.size}",
                     style = MaterialTheme.typography.bodyLarge.copy(
                         color = textColor.copy(alpha = 0.8f),
                         fontSize = 16.sp
@@ -191,7 +180,37 @@ fun FolderPageScreen(
                 }
             }
 
-            ElementGrid(elements = filteredFolder, onElementClick = onElementClick)
+            // Content display logic
+            if (isRefreshing && finalFilteredElements.isEmpty() && currentUser != null) {
+                // Show loader if actively refreshing AND list is currently empty for a logged-in user
+                CircularProgressIndicator(color = buttonColor, modifier = Modifier.padding(16.dp))
+            } else if (displayError != null) {
+                Text(
+                    "${stringResource(id = R.string.error_error)} $displayError",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else if (currentUser == null && folderKey.isNotEmpty()) {
+                Text(
+                    stringResource(id = R.string.error_message_no_user),
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)
+                )
+            } else if (finalFilteredElements.isEmpty() && currentUser != null) {
+                Text(
+                    stringResource(id = R.string.error_message_no_elements),
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else if (finalFilteredElements.isNotEmpty()) {
+                ElementGrid(elements = finalFilteredElements, onElementClick = onElementClick)
+            } else if (currentUser == null && folderKey.isEmpty()) {
+                Text(
+                    stringResource(id = R.string.content_not_available),
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -213,7 +232,7 @@ fun FolderPageScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.account),
-                    contentDescription = "Account",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_account),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToAccount() },
@@ -222,7 +241,7 @@ fun FolderPageScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.search),
-                    contentDescription = "Search",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_search),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToSearch() },
@@ -233,7 +252,7 @@ fun FolderPageScreen(
                     painter = painterResource(
                         id = if (isUsavrseniFolder) R.drawable.checkmark_filled else R.drawable.checkmark
                     ),
-                    contentDescription = "Checkmark",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_checkmark),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToCheckmark() },
@@ -244,7 +263,7 @@ fun FolderPageScreen(
                     painter = painterResource(
                         id = if (isFavoritiFolder) R.drawable.heart_filled else R.drawable.heart
                     ),
-                    contentDescription = "Heart",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_heart),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToHeart() },
@@ -255,7 +274,7 @@ fun FolderPageScreen(
                     painter = painterResource(
                         id = if (isZeljeFolder) R.drawable.star_filled else R.drawable.star
                     ),
-                    contentDescription = "Star",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_star),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToStar() },

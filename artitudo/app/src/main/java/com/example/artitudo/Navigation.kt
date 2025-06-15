@@ -1,8 +1,11 @@
 package com.example.artitudo
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +20,10 @@ import com.example.artitudo.view.LoginScreen
 import com.example.artitudo.view.NewElementScreen
 import com.example.artitudo.view.ProfilePageScreen
 import com.example.artitudo.view.RegisterScreen
+import com.example.artitudo.view.EditElementScreen
+import com.example.artitudo.viewmodel.AuthViewModel
+import androidx.compose.runtime.getValue
+import com.example.artitudo.viewmodel.ElementsViewModel
 
 sealed class Screen(val route: String) {
     object LoginScreen : Screen("loginscreen")
@@ -29,7 +36,10 @@ sealed class Screen(val route: String) {
     object LevelerScreen : Screen("levelerscreen") // Assuming you have this
     object NewElementScreen : Screen("newelementscreen")
     object ElementDetailScreen : Screen("elementdetailscreen/{elementId}") {
-        fun createRoute(elementId: Int) = "elementdetailscreen/$elementId"
+        fun createRoute(elementId: String) = "elementdetailscreen/$elementId"
+    }
+    object EditElementScreen : Screen("editelementscreen/{elementId}") { // <-- ADD THIS
+        fun createRoute(elementId: String) = "editelementscreen/$elementId"
     }
 
     // You can add more routes here as your app grows
@@ -42,12 +52,20 @@ object FolderNames {
 }
 
 @Composable
-fun NavigationController() {
+fun NavigationController(authViewModel: AuthViewModel = viewModel(), elementsViewModel: ElementsViewModel = viewModel()) {
     val navController = rememberNavController()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
-    NavHost(navController = navController, startDestination = Screen.LoginScreen.route) {
+    val startDestination = if (currentUser != null) {
+        Screen.ProfilePageScreen.route
+    } else {
+        Screen.LoginScreen.route
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.LoginScreen.route) {
             LoginScreen(
+                authViewModel = authViewModel,
                 onNavigateToRegister = { navController.navigate(Screen.RegisterScreen.route) },
                 onNavigateToProfile = {
                     navController.navigate(Screen.ProfilePageScreen.route) {
@@ -61,6 +79,7 @@ fun NavigationController() {
         composable(Screen.RegisterScreen.route) {
             // Assuming you have a RegisterScreen composable
             RegisterScreen(
+                authViewModel = authViewModel,
                 onNavigateToLogin = { navController.navigate(Screen.LoginScreen.route) },
                 onNavigateToProfile = {
                     navController.navigate(Screen.ProfilePageScreen.route) {
@@ -72,6 +91,8 @@ fun NavigationController() {
         }
         composable(Screen.ElementsScreen.route) {
             ElementsScreen(
+                authViewModel = authViewModel,
+                elementsViewModel = elementsViewModel,
                 onNavigateToAccount = { navController.navigate(Screen.ProfilePageScreen.route) { launchSingleTop = true } },
                 onNavigateToSearch = { /* Already on ElementsScreen, or refresh logic */ navController.navigate(Screen.ElementsScreen.route) { launchSingleTop = true; popUpTo(Screen.ElementsScreen.route) {inclusive = true} } },
                 onNavigateToCheckmark = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) { launchSingleTop = true } },
@@ -85,6 +106,7 @@ fun NavigationController() {
         }
         composable(Screen.ProfilePageScreen.route) {
             ProfilePageScreen(
+                authViewModel = authViewModel,
                 onNavigateToLogin = {
                     navController.navigate(Screen.LoginScreen.route) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
@@ -108,7 +130,9 @@ fun NavigationController() {
         ) { backStackEntry ->
             val folderName = backStackEntry.arguments?.getString("folderName") ?: ""
             FolderPageScreen(
-                folderName = folderName,
+                folderScreenIdentifier = folderName,
+                elementsViewModel = elementsViewModel,
+                authViewModel = authViewModel,
                 onElementClick = { elementId ->
                     navController.navigate(Screen.ElementDetailScreen.createRoute(elementId))
                 },
@@ -123,35 +147,103 @@ fun NavigationController() {
         }
         composable(Screen.LevelerScreen.route) {
             LevelerScreen(
-                onNavigateBack = { navController.popBackStack() }
-                // Add other necessary parameters
-            )
-        }
-        composable(Screen.NewElementScreen.route) {
-            NewElementScreen(
-                onAddElement = { /* Assuming you pass some data or ID */
-                    // For now, let's assume it navigates with a placeholder or new ID
-                    // This might need adjustment based on how ElementDetailScreen handles a "new" element
-                    navController.navigate(Screen.ElementDetailScreen.createRoute(-1)) // -1 for a new element, adjust as needed
-                },
-                onNavigateBack = { navController.popBackStack() }
-                // Add other necessary parameters
-            )
-        }
-        composable(
-            route = Screen.ElementDetailScreen.route,
-            arguments = listOf(navArgument("elementId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val elementId = backStackEntry.arguments?.getInt("elementId") ?: -1 // Default or error ID
-            ElementDetailScreen(
-                elementId = elementId,
                 onNavigateBack = { navController.popBackStack() },
+
                 onNavigateToAccount = { navController.navigate(Screen.ProfilePageScreen.route) { launchSingleTop = true } },
                 onNavigateToSearch = { navController.navigate(Screen.ElementsScreen.route) { launchSingleTop = true } },
                 onNavigateToCheckmark = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) {inclusive = true} } },
                 onNavigateToHeart = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) {inclusive = true} } },
                 onNavigateToStar = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) {inclusive = true} } }
+                // Add other necessary parameters
             )
+        }
+        composable(Screen.NewElementScreen.route) {
+            NewElementScreen(
+                authViewModel = authViewModel,
+                elementsViewModel = elementsViewModel,
+                onElementCreated = { newlyCreatedElementId: String -> // Explicitly type if needed, but often inferred
+                    navController.navigate(Screen.ElementDetailScreen.createRoute(newlyCreatedElementId)) {
+                        popUpTo(Screen.NewElementScreen.route) { inclusive = true } // Remove NewElementScreen from back stack
+                        launchSingleTop = true // Avoid multiple instances of DetailScreen if rapidly called
+                    }
+                },
+                onNavigateBack = { navController.popBackStack() },
+
+                onNavigateToAccount = { navController.navigate(Screen.ProfilePageScreen.route) { launchSingleTop = true } },
+                onNavigateToSearch = { navController.navigate(Screen.ElementsScreen.route) { launchSingleTop = true } },
+                onNavigateToCheckmark = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) {inclusive = true} } },
+                onNavigateToHeart = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) {inclusive = true} } },
+                onNavigateToStar = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) {inclusive = true} } }
+                // Add other necessary parameters
+            )
+        }
+        composable(
+            route = Screen.ElementDetailScreen.route,
+            arguments = listOf(navArgument("elementId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val elementId = backStackEntry.arguments?.getString("elementId")
+
+            if (elementId != null) {
+                ElementDetailScreen(
+                    elementId = elementId,
+                    elementsViewModel = elementsViewModel, // Pass the ViewModel
+                    authViewModel = authViewModel,
+                    onEditClick = { idToEdit ->
+                        navController.navigate(Screen.EditElementScreen.createRoute(idToEdit))
+                    },
+                    onElementDeletedSuccessfully = {
+                        navController.navigate(Screen.ElementsScreen.route) {
+                            popUpTo(Screen.ElementsScreen.route) { inclusive = true } // Go to ElementsScreen, clear back stack up to it
+                            launchSingleTop = true // Avoid multiple instances of ElementsScreen
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() } ,
+                    onNavigateToAccount = { navController.navigate(Screen.ProfilePageScreen.route) { launchSingleTop = true } },
+                    onNavigateToSearch = { navController.navigate(Screen.ElementsScreen.route) { launchSingleTop = true } },
+                    onNavigateToCheckmark = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) {inclusive = true} } },
+                    onNavigateToHeart = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) {inclusive = true} } },
+                    onNavigateToStar = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) { launchSingleTop = true; popUpTo(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) {inclusive = true} } }
+                )
+            } else {
+                // Handle error: elementId is null
+                Text("Error: Element ID not found.")
+            }
+        }
+
+        composable(
+            route = Screen.EditElementScreen.route,
+            arguments = listOf(navArgument("elementId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val elementId = backStackEntry.arguments?.getString("elementId")
+            if (elementId != null) {
+                EditElementScreen(
+                    elementId = elementId,
+                    elementsViewModel = elementsViewModel,
+                    authViewModel = authViewModel,
+                    onElementUpdated = {
+                        // After successful update, navigate back to the ElementDetailScreen
+                        // Pop EditElementScreen off the back stack.
+                        // Refresh ElementDetailScreen by re-navigating or ensuring ViewModel updates trigger recomposition.
+                        navController.popBackStack() // This will return to ElementDetailScreen
+                        // Optionally, to ensure ElementDetailScreen recomposes with fresh data if needed:
+                        // navController.navigate(Screen.ElementDetailScreen.createRoute(elementId)) {
+                        //    popUpTo(Screen.ElementDetailScreen.createRoute(elementId)) { inclusive = true }
+                        //    launchSingleTop = true
+                        // }
+                        // The popBackStack() is usually sufficient if ElementDetailScreen observes the ViewModel.
+                    },
+                    onNavigateBack = { navController.popBackStack() }, // Standard back navigation
+                    // Footer Navigation (same as other screens)
+                    onNavigateToAccount = { navController.navigate(Screen.ProfilePageScreen.route) { launchSingleTop = true } },
+                    onNavigateToSearch = { navController.navigate(Screen.ElementsScreen.route) { launchSingleTop = true } },
+                    onNavigateToCheckmark = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.USAVRSENI_ELEMENTI)) { launchSingleTop = true } },
+                    onNavigateToHeart = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.FAVORITI)) { launchSingleTop = true } },
+                    onNavigateToStar = { navController.navigate(Screen.FolderPageScreen.createRoute(FolderNames.ZELJE)) { launchSingleTop = true } }
+                )
+            } else {
+                Text("Error: Element ID not found for Edit Screen.")
+                // Consider navigating back or to an error screen
+            }
         }
     }
 }

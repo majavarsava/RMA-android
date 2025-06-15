@@ -1,5 +1,8 @@
 package com.example.artitudo.view
 
+import com.example.artitudo.ui.theme.backgroundColor
+import com.example.artitudo.ui.theme.buttonColor
+import com.example.artitudo.ui.theme.textColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,45 +14,78 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.artitudo.R
-import kotlin.math.exp
+import com.example.artitudo.viewmodel.AuthViewModel
+import com.example.artitudo.viewmodel.ElementsViewModel
+import com.example.artitudo.model.ElementLevel
+import android.net.Uri // Import Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewElementScreen(
+    elementsViewModel: ElementsViewModel,
+    authViewModel: AuthViewModel,
+    onElementCreated: (newElementId: String) -> Unit,
+
     onNavigateToAccount: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
     onNavigateToCheckmark: () -> Unit = {},
     onNavigateToHeart: () -> Unit = {},
     onNavigateToStar: () -> Unit = {},
-    onAddElement: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     var elementName by remember { mutableStateOf("") }
     var elementDescription by remember { mutableStateOf("") }
-    var selectedLevel by remember { mutableStateOf("") }
-    var imageFile by remember { mutableStateOf("") }
-    var videoFile by remember { mutableStateOf("") }
+
+    // --- Using your ElementLevel Enum ---
+    val levelOptionsFromEnum = remember { ElementLevel.values().toList() } // Get all defined levels
+    var selectedLevelEnum by remember { mutableStateOf<ElementLevel?>(null) } // Store the selected enum object or null
+
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var videoUri by remember { mutableStateOf<Uri?>(null) }
+
+    var imageFileName by remember { mutableStateOf("") }
+    var videoFileName by remember { mutableStateOf("") }
+
     var expanded by remember { mutableStateOf(false) }
 
-    val levelOptions = listOf("Okreti", "Beginner", "Intermediate", "Advanced")
+    val viewModelErrorMessage by elementsViewModel.error.collectAsState()
+    val isLoading by elementsViewModel.isLoading.collectAsState()
+    var uiErrorMessage by remember { mutableStateOf<String?>(null) }
+    val displayErrorMessage = uiErrorMessage ?: viewModelErrorMessage
 
-    // Color definitions
-    val backgroundColor = Color(0xFF333333)
-    val buttonColor = Color(0xFF722F7F)
-    val textColor = Color.White
+    val stringErrorNameBlank = stringResource(id = R.string.name_cant_be_blank)
+    val stringErrorPleasePickLevel = stringResource(id = R.string.please_pick_level)
+
+    // --- Image Picker ---
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imageUri = uri
+        imageFileName = uri?.lastPathSegment ?: "" // Display the file name
+    }
+
+    // --- Video Picker ---
+    val videoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        videoUri = uri
+        videoFileName = uri?.lastPathSegment ?: "" // Display the file name
+    }
 
     Box(
         modifier = Modifier
@@ -75,7 +111,7 @@ fun NewElementScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_back),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateBack() },
@@ -86,7 +122,7 @@ fun NewElementScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Ime elementa:",
+                text = stringResource(id = R.string.new_element_title),
                 color = textColor,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -103,7 +139,7 @@ fun NewElementScreen(
                     .height(56.dp),
                 placeholder = {
                     Text(
-                        text = "Unesite ime elementa...",
+                        text = stringResource(id = R.string.new_element_title_placeholder),
                         color = Color.Gray
                     )
                 },
@@ -120,7 +156,7 @@ fun NewElementScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Opis:",
+                text = stringResource(id = R.string.new_element_description),
                 color = textColor,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -137,7 +173,7 @@ fun NewElementScreen(
                     .height(56.dp),
                 placeholder = {
                     Text(
-                        text = "Unesite opis elementa...",
+                        text = stringResource(id = R.string.new_element_description_placeholder),
                         color = Color.Gray
                     )
                 },
@@ -148,15 +184,13 @@ fun NewElementScreen(
                     unfocusedBorderColor = Color.Gray,
                     cursorColor = buttonColor
                 ),
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = false
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Level:",
+                text = stringResource(id = R.string.new_element_level),
                 color = textColor,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -171,12 +205,12 @@ fun NewElementScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = selectedLevel,
+                    value = selectedLevelEnum?.displayName ?: "", // Show display name or empty
                     onValueChange = {},
                     readOnly = true,
                     placeholder = {
                         Text(
-                            text = "Izaberite level elementa...",
+                            text = stringResource(id = R.string.new_element_level_placeholder),
                             color = Color.Gray
                         )
                     },
@@ -201,16 +235,16 @@ fun NewElementScreen(
                     onDismissRequest = { expanded = false },
                     modifier = Modifier.background(Color(0xFF444444))
                 ) {
-                    levelOptions.forEach { option ->
+                    levelOptionsFromEnum.forEach { level ->
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = option,
+                                    text = level.displayName,
                                     color = textColor
                                 )
                             },
                             onClick = {
-                                selectedLevel = option
+                                selectedLevelEnum = level
                                 expanded = false
                             },
                             colors = MenuDefaults.itemColors(
@@ -224,7 +258,7 @@ fun NewElementScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Slika:",
+                text = stringResource(id = R.string.new_element_picture),
                 color = textColor,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -239,18 +273,17 @@ fun NewElementScreen(
                     .height(56.dp)
                     .border(
                         width = 1.dp,
-                        color = if (imageFile.isNotEmpty()) buttonColor else Color.Gray,
+                        color = if (imageUri != null) buttonColor else Color.Gray, // Check imageUri
                         shape = RoundedCornerShape(4.dp)
                     )
                     .clickable {
-                        // TODO: Implement image picker
-                        imageFile = "selected_image.jpg" // Placeholder
+                        imagePickerLauncher.launch("image/*") // Launch image picker
                     },
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = if (imageFile.isEmpty()) "Izaberite sliku..." else imageFile,
-                    color = if (imageFile.isEmpty()) Color.Gray else textColor,
+                    text = if (imageUri == null) stringResource(id=R.string.new_element_picture_placeholder) else imageFileName.ifEmpty { stringResource(id=R.string.new_element_picture_picked) },
+                    color = if (imageUri == null) Color.Gray else textColor,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -259,7 +292,7 @@ fun NewElementScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Video:",
+                text = stringResource(id = R.string.new_element_video),
                 color = textColor,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -274,27 +307,68 @@ fun NewElementScreen(
                     .height(56.dp)
                     .border(
                         width = 1.dp,
-                        color = if (videoFile.isNotEmpty()) buttonColor else Color.Gray,
+                        color = if (videoUri != null) buttonColor else Color.Gray, // Check videoUri
                         shape = RoundedCornerShape(4.dp)
                     )
                     .clickable {
-                        // TODO: Implement video picker
-                        videoFile = "selected_video.mp4" // Placeholder
+                        videoPickerLauncher.launch("video/*") // Launch video picker
                     },
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = if (videoFile.isEmpty()) "Izaberite video..." else videoFile,
-                    color = if (videoFile.isEmpty()) Color.Gray else textColor,
+                    text = if (videoUri == null) stringResource(id=R.string.new_element_video_placeholder) else videoFileName.ifEmpty { stringResource(id=R.string.new_element_video_picked) },
+                    color = if (videoUri == null) Color.Gray else textColor,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
 
+            displayErrorMessage?.let { message ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             Button( // elementName, elementDescription, selectedLevel, imageFile, videoFile
-                onClick = { onAddElement() },
+                onClick = {
+                    uiErrorMessage = null
+                    // ViewModel will clear its own error in addNewElement
+
+                    // --- Client-side validation ---
+                    if (elementName.isBlank()) {
+                        uiErrorMessage = stringErrorNameBlank
+                        return@Button
+                    }
+                    if (selectedLevelEnum == null) {
+                        uiErrorMessage = stringErrorPleasePickLevel
+                        return@Button
+                    }
+                    elementsViewModel.addNewElement(
+                        name = elementName,
+                        description = elementDescription,
+                        level = selectedLevelEnum!!.displayName,
+                        levelNumber = selectedLevelEnum!!.levelNumber,
+                        imageLocalUri = imageUri, // Pass Uri
+                        videoLocalUri = videoUri, // Pass Uri
+                        onSuccess = { generatedId ->
+                            onElementCreated(generatedId)
+                        },
+                        onFailure = { detailedErrorFromVM ->
+                            // uiErrorMessage = detailedErrorFromVM // ViewModel error is already collected
+                            println("Error from VM: $detailedErrorFromVM")
+                        }
+                    )
+                },
+                enabled = !isLoading,
                 modifier = Modifier
                     .width(200.dp)
                     .height(50.dp),
@@ -303,12 +377,20 @@ fun NewElementScreen(
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    text = "Dodaj novi element",
-                    color = textColor,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = textColor,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.new_element_add_new_element),
+                        color = textColor,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -330,7 +412,7 @@ fun NewElementScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.account),
-                    contentDescription = "Account",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_account),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToAccount() },
@@ -339,7 +421,7 @@ fun NewElementScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.search),
-                    contentDescription = "Search",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_search),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToSearch() },
@@ -348,7 +430,7 @@ fun NewElementScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.checkmark),
-                    contentDescription = "Checkmark",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_checkmark),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToCheckmark() },
@@ -357,7 +439,7 @@ fun NewElementScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.heart),
-                    contentDescription = "Heart",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_heart),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToHeart() },
@@ -366,7 +448,7 @@ fun NewElementScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.star),
-                    contentDescription = "Star",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_star),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToStar() },

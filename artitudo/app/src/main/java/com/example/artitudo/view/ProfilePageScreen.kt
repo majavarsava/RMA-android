@@ -1,5 +1,8 @@
 package com.example.artitudo.view
 
+import com.example.artitudo.ui.theme.backgroundColor
+import com.example.artitudo.ui.theme.buttonColor
+import com.example.artitudo.ui.theme.textColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,17 +18,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.artitudo.R
+import com.example.artitudo.viewmodel.AuthViewModel
+
 
 @Composable
 fun ProfilePageScreen(
-    username: String = "placeholder",
-    completedElements: Int = 0,
-    //onLogoutClick: () -> Unit = {},
+    authViewModel: AuthViewModel,
     onNavigateToLogin: () -> Unit = {},
     onNavigateToLeveler: () -> Unit = {},
     onAddElementClick: () -> Unit = {},
@@ -35,10 +39,9 @@ fun ProfilePageScreen(
     onNavigateToHeart: () -> Unit = {},
     onNavigateToStar: () -> Unit = {}
 ) {
-    // Color definitions
-    val backgroundColor = Color(0xFF333333)
-    val buttonColor = Color(0xFF722F7F)
-    val textColor = Color.White
+
+    val isAdmin by authViewModel.isAdmin.collectAsState()
+    val currentUsername by authViewModel.username.collectAsState()
 
     Box(
         modifier = Modifier
@@ -64,7 +67,7 @@ fun ProfilePageScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Logo",
+                    contentDescription = stringResource(id = R.string.logo_content_description),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
@@ -77,30 +80,23 @@ fun ProfilePageScreen(
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = "Korisničko ime: ",
+                    text = currentUsername ?: stringResource(id = R.string.default_username_guest),
                     color = textColor,
-                    fontSize = 24.sp
-                )
-                Text(
-                    text = username,
-                    color = textColor,
-                    fontSize = 24.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                if (isAdmin) {
                     Text(
-                        text = "Broj usavršenih elemenata: ",
+                        text = stringResource(id = R.string.user_role_admin),
                         color = textColor,
-                        fontSize = 24.sp
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
                     )
+                }
+                else {
                     Text(
-                        text = completedElements.toString(),
+                        text = stringResource(id = R.string.user_role_student),
                         color = textColor,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Medium
@@ -115,7 +111,11 @@ fun ProfilePageScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = onNavigateToLogin,
+                    onClick = {
+                        authViewModel.logout {
+                            onNavigateToLogin()
+                        }
+                    },
                     modifier = Modifier
                         .width(200.dp)
                         .height(50.dp),
@@ -125,7 +125,7 @@ fun ProfilePageScreen(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "Odjava",
+                        text = stringResource(id = R.string.button_logout),
                         color = textColor,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
@@ -144,30 +144,32 @@ fun ProfilePageScreen(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "Provjeri level šipke",
+                        text = stringResource(id = R.string.button_check_level),
                         color = textColor,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
 
-                // Add element button
-                Button(
-                    onClick = onAddElementClick,
-                    modifier = Modifier
-                        .width(200.dp)
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = buttonColor
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "Dodaj novi element",
-                        color = textColor,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                if (isAdmin) {
+                    // Add element button
+                    Button(
+                        onClick = onAddElementClick,
+                        modifier = Modifier
+                            .width(200.dp)
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = buttonColor
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.button_add_new_element),
+                            color = textColor,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
@@ -190,7 +192,7 @@ fun ProfilePageScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.account_filled),
-                    contentDescription = "Account",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_account),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToAccount() },
@@ -199,7 +201,7 @@ fun ProfilePageScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.search),
-                    contentDescription = "Search",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_search),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToSearch() },
@@ -208,7 +210,7 @@ fun ProfilePageScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.checkmark),
-                    contentDescription = "Checkmark",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_checkmark),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToCheckmark() },
@@ -217,7 +219,7 @@ fun ProfilePageScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.heart),
-                    contentDescription = "Heart",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_heart),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToHeart() },
@@ -226,7 +228,7 @@ fun ProfilePageScreen(
 
                 Image(
                     painter = painterResource(id = R.drawable.star),
-                    contentDescription = "Star",
+                    contentDescription = stringResource(id = R.string.nav_icon_description_star),
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { onNavigateToStar() },
