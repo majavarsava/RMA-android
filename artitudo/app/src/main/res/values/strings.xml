@@ -89,4 +89,13 @@
 
     <string name="leveler_title">Leveler za šipku</string>
 
+    <!-- error messages - navigation, viewmodel, notif. -->
+    <string name="error_element_id_not_found">Greška: ID elementa nije pronađen.</string>
+    <string name="error_element_id_not_found_for_edit">Greška: ID elementa nije pronađen na zaslonu za uređivanje.</string>
+    <string name="notification_channel_new_element_name">Novi elementi (aplikacija aktivna)</string>
+    <string name="notification_channel_new_element_description">Obavijesti za novi dodani elementi prilikom rada aplikacije.</string>
+    <string name="notification_title_new_element_added">Novi element dodan!</string>
+    <string name="notification_text_new_element_added">Pogledaj element </string>
+
+
 </resources>

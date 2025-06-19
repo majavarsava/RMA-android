@@ -1,11 +1,11 @@
 package com.example.artitudo.model
 
-enum class ElementLevel(val displayName: String, val levelNumber: String) {
-    SPINS("Spins", "0"),
-    BEGINNER("Beginner", "1"),
-    INTERMEDIATE("Intermediate", "2"),
-    ADVANCED("Advanced", "3"),
-    OTHER("Other", "4");
+enum class ElementLevel(val displayName: String) {
+    SPINS("Spins"),
+    BEGINNER("Beginner"),
+    INTERMEDIATE("Intermediate"),
+    ADVANCED("Advanced"),
+    OTHER("Other");
 
     companion object {
         fun fromDisplayName(displayName: String): ElementLevel {

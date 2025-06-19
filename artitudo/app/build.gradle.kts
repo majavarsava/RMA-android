@@ -64,6 +64,7 @@ dependencies {
     // implementacije za mvvm
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.1")
 
     implementation("io.coil-kt:coil-compose:2.6.0") // Use the latest version
 
@@ -81,5 +82,8 @@ dependencies {
     implementation("com.google.firebase:firebase-storage-ktx")
     // For using await() on Firebase Tasks with Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3") // Or latest version
+
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
 }

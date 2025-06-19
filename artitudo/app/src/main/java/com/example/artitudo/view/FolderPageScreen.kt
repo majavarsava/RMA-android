@@ -24,7 +24,6 @@ import com.example.artitudo.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.artitudo.FolderNames
 import com.example.artitudo.model.Element
 import com.example.artitudo.viewmodel.AuthViewModel
@@ -38,7 +37,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun FolderPageScreen(
     folderScreenIdentifier: String,
-    elementsViewModel: ElementsViewModel, // Get ElementsViewModel
+    elementsViewModel: ElementsViewModel,
     authViewModel: AuthViewModel,
     onElementClick: (elementId: String) -> Unit = {},
 
@@ -73,7 +72,6 @@ fun FolderPageScreen(
     }
     val displayFolderName = stringResource(id = folderNameResId)
 
-    // For bottom bar active state (remains the same)
     val isFavoritiFolder = folderScreenIdentifier == FolderNames.FAVORITI
     val isZeljeFolder = folderScreenIdentifier == FolderNames.ZELJE
     val isUsavrseniFolder = folderScreenIdentifier == FolderNames.USAVRSENI_ELEMENTI
@@ -89,10 +87,9 @@ fun FolderPageScreen(
     }
     val elementsInThisFolder: List<Element> = remember(folderKey,
         elementsViewModel.elementsForUserFolders.collectAsState().value
-    ) { // Recompute if allElements or folderKey changes
+    ) {
         elementsViewModel.getElementsForFolder(folderKey)
     }
-    // Apply level filtering on top of the folder's elements
     val finalFilteredElements = remember(elementsInThisFolder, selectedLevel) {
         if (selectedLevel == "All") {
             elementsInThisFolder
@@ -102,16 +99,16 @@ fun FolderPageScreen(
             }
         }
     }
-    LaunchedEffect(isLoading) { // Or a combined loading state if you add one for userData
+    LaunchedEffect(isLoading) {
         isRefreshing = isLoading
     }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
-            elementsViewModel.fetchAllElementsForFiltering() // Or your actual element fetch function name
+            elementsViewModel.fetchAllElementsForFiltering()
             currentUser?.uid?.let { userId ->
-                authViewModel.refreshUserData(userId) // Call the new function in AuthViewModel
+                authViewModel.refreshUserData(userId)
             }
         },
         modifier = Modifier
@@ -180,9 +177,7 @@ fun FolderPageScreen(
                 }
             }
 
-            // Content display logic
             if (isRefreshing && finalFilteredElements.isEmpty() && currentUser != null) {
-                // Show loader if actively refreshing AND list is currently empty for a logged-in user
                 CircularProgressIndicator(color = buttonColor, modifier = Modifier.padding(16.dp))
             } else if (displayError != null) {
                 Text(

@@ -12,8 +12,7 @@ import kotlinx.coroutines.tasks.await
 
 class AuthHelper {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val db: FirebaseFirestore = Firebase.firestore // Use Firestore instance
-    // Collection for users in Firestore
+    private val db: FirebaseFirestore = Firebase.firestore
     private val usersCollection = db.collection("users")
 
     companion object {
@@ -21,15 +20,10 @@ class AuthHelper {
         const val FOLDER_FAVORITES = "favorites"
         const val FOLDER_WISHLIST = "wishlist"
     }
-    // --- Username to Email Conversion ---
     private fun usernameToEmail(username: String): String {
-        // Consider a more robust way if your app might have users from different domains
-        // or if usernames could clash with real email patterns.
-        // For simplicity, we'll keep your current approach.
-        return "${username.lowercase()}@artitudo.app" // Using a consistent domain
+        return "${username.lowercase()}@artitudo.app"
     }
     private fun isValidUsername(username: String): Boolean {
-        // At least 3 chars, letters, numbers, underscore
         return username.matches(Regex("^[a-zA-Z0-9_]{3,}$"))
     }
     // --- Registration ---
@@ -48,21 +42,20 @@ class AuthHelper {
                     username = username,
                     email = email,
                     isAdmin = false,
-                    createdAt = Timestamp.now(), // Firebase Timestamp
-                    folders = mapOf( // Initialize empty folders
+                    createdAt = Timestamp.now(),
+                    folders = mapOf(
                         FOLDER_FAVORITES to emptyList(),
                         FOLDER_WISHLIST to emptyList(),
                         FOLDER_MASTERED to emptyList()
                     )
                 )
-                // Store additional user info in Firestore (e.g., username, isAdmin flag)
                 val userDataMap = mapOf(
                     "uid" to initialUserData.uid,
                     "username" to initialUserData.username,
                     "email" to initialUserData.email,
                     "isAdmin" to initialUserData.isAdmin,
                     "createdAt" to initialUserData.createdAt,
-                    "folders" to initialUserData.folders // This is already a map
+                    "folders" to initialUserData.folders
                 )
                 usersCollection.document(firebaseUser.uid).set(userDataMap).await()
                 Result.success(firebaseUser)
@@ -70,7 +63,6 @@ class AuthHelper {
                 Result.failure(Exception("Registracija nije uspjela, korisnik nije kreiran."))
             }
         } catch (e: Exception) {
-            // Handle specific Firebase exceptions for better error messages
             val message = when (e) {
                 is com.google.firebase.auth.FirebaseAuthUserCollisionException -> "Korisničko ime '$username' je već zauzeto."
                 is com.google.firebase.auth.FirebaseAuthWeakPasswordException -> "Lozinka treba imati barem 6 znakova."
@@ -82,7 +74,6 @@ class AuthHelper {
 
     // --- Login ---
     suspend fun loginUser(username: String, password: String): Result<FirebaseUser> {
-        // You could also allow login with email if you prefer, but sticking to username for now
         if (username.isBlank()) {
             return Result.failure(IllegalArgumentException("Korisničko ime ne može biti prazno."))
         }
@@ -111,44 +102,13 @@ class AuthHelper {
         auth.signOut()
     }
 
-    // --- Current User Info ---
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
-    }
-
-    fun isLoggedIn(): Boolean {
-        return auth.currentUser != null
-    }
-
-    // --- Admin Check ---
-    suspend fun isCurrentUserAdmin(): Boolean {
-        val user = auth.currentUser ?: return false
-        return try {
-            val documentSnapshot = usersCollection.document(user.uid).get().await()
-            documentSnapshot.getBoolean("isAdmin") ?: false
-        } catch (e: Exception) {
-            // Log error or handle appropriately
-            println("Error checking admin status: ${e.message}")
-            false
-        }
-    }
-
-    // --- Get Username (Optional - if needed outside of user object) ---
-    suspend fun getCurrentUsername(): String? {
-        val user = auth.currentUser ?: return null
-        return try {
-            val documentSnapshot = usersCollection.document(user.uid).get().await()
-            documentSnapshot.getString("username")
-        } catch (e: Exception) {
-            println("Error fetching username: ${e.message}")
-            null
-        }
     }
 
     suspend fun getUserData(userId: String): Result<User?> {
         return try {
             val documentSnapshot = usersCollection.document(userId).get().await()
-            // Convert Firestore document to your User data class
             val user = documentSnapshot.toObject(User::class.java)
             Result.success(user)
         } catch (e: Exception) {
@@ -161,7 +121,6 @@ class AuthHelper {
     suspend fun addElementToUserFolder(elementId: String, folderName: String): Result<Unit> {
         val user = auth.currentUser ?: return Result.failure(Exception("Korisnik nije prijavljen."))
         return try {
-            // Path to the specific array within the 'folders' map
             val folderPath = "folders.$folderName"
             usersCollection.document(user.uid).update(folderPath, FieldValue.arrayUnion(elementId)).await()
             Result.success(Unit)

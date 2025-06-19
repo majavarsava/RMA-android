@@ -89,4 +89,12 @@
 
     <string name="leveler_title">Leveler for pole</string>
 
+    <!-- error messages - navigation, viewmodel, other -->
+    <string name="error_element_id_not_found">Error: Element ID not found.</string>
+    <string name="error_element_id_not_found_for_edit">Error: Element ID not found on edit screen.</string>
+    <string name="notification_channel_new_element_name">New Elements (App Active)</string>"
+    <string name="notification_channel_new_element_description">Notifications for newly added elements while app is active.</string>
+    <string name="notification_title_new_element_added">New element added!</string>
+    <string name="notification_text_new_element_added">Go check out </string>
+
 </resources>

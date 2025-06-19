@@ -49,18 +49,18 @@ fun ElementDetailScreen(
     onElementDeletedSuccessfully: () -> Unit = {}
 ) {
     val element by elementsViewModel.selectedElement.collectAsState()
-    val isLoadingElement by elementsViewModel.isLoading.collectAsState() // Or a specific loading state for detail
-    val error by elementsViewModel.error.collectAsState() // Or a specific error state
-    val errorElement by elementsViewModel.error.collectAsState() // Element specific error
+    val isLoadingElement by elementsViewModel.isLoading.collectAsState()
+    val error by elementsViewModel.error.collectAsState()
+    val errorElement by elementsViewModel.error.collectAsState()
 
-    val authError by authViewModel.authError.collectAsState() // Auth specific error
+    val authError by authViewModel.authError.collectAsState()
 
     val isElementInMastered by authViewModel.isElementInMastered.collectAsState()
     val isElementInFavorites by authViewModel.isElementInFavorites.collectAsState()
     val isElementInWishlist by authViewModel.isElementInWishlist.collectAsState()
 
-    val currentUser by authViewModel.currentUser.collectAsState() // To know if user is logged in
-    // --- For Delete Confirmation Dialog ---
+    val currentUser by authViewModel.currentUser.collectAsState()
+
     var showDeleteDialog by remember { mutableStateOf(false) }
     val isAdmin by authViewModel.isAdmin.collectAsState()
 
@@ -138,7 +138,7 @@ fun ElementDetailScreen(
                 ),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.height(35.dp),
-                enabled = false // non-clickable since it's just for display
+                enabled = false
             ) {
                 Text(currentElement.level)
             }
@@ -158,7 +158,7 @@ fun ElementDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-                if (currentUser != null) { // Only show if user is logged in
+                if (currentUser != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -229,8 +229,8 @@ fun ElementDetailScreen(
                         contentDescription = element!!.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize() ,
-                        placeholder = painterResource(id = R.drawable.logo), // Add placeholder
-                        error = painterResource(id = R.drawable.logo) // Add error image
+                        placeholder = painterResource(id = R.drawable.logo),
+                        error = painterResource(id = R.drawable.logo)
                     )
                 } else {
                     Box(
@@ -271,15 +271,15 @@ fun ElementDetailScreen(
 
                 Button(
                     onClick = {
-                        elementsViewModel.clearError() // Clear previous errors
-                        showDeleteDialog = true // Show confirmation dialog
+                        elementsViewModel.clearError()
+                        showDeleteDialog = true
                     },
                     enabled = !isLoadingElement,
                     modifier = Modifier
                         .width(200.dp)
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F) // Red color for delete
+                        containerColor = Color(0xFFD32F2F)
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
@@ -294,7 +294,7 @@ fun ElementDetailScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
-        } else if (!isLoadingElement) { // Element not found, not loading, and no specific error yet
+        } else if (!isLoadingElement) {
             Text(
                 stringResource(id = R.string.element_not_found),
                 color = Color.White,
@@ -313,7 +313,7 @@ fun ElementDetailScreen(
                         onClick = {
                             showDeleteDialog = false
                             elementsViewModel.deleteElement(element!!.id){
-                                onElementDeletedSuccessfully() // Navigate after deletion
+                                onElementDeletedSuccessfully()
                             }
                         }
                     ) {
@@ -325,15 +325,14 @@ fun ElementDetailScreen(
                         Text(stringResource(id = R.string.cancel_text))
                     }
                 },
-                containerColor = Color(0xFF444444), // Darker background for dialog
+                containerColor = Color(0xFF444444),
                 titleContentColor = textColor,
                 textContentColor = textColor.copy(alpha = 0.8f)
             )
         }
 
-        if (error != null && !showDeleteDialog ) { // Don't show if dialog is up or if element load error already shown
-            // You might want a more specific place for this error if it's not a screen-blocking one
-            Box(modifier = Modifier.align(Alignment.Center).padding(16.dp)) { // Example placement
+        if (error != null && !showDeleteDialog ) {
+            Box(modifier = Modifier.align(Alignment.Center).padding(16.dp)) {
                 Text(
                     text = "${stringResource(id = R.string.error_error)} $error",
                     color = MaterialTheme.colorScheme.error,

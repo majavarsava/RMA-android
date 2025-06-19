@@ -1,30 +1,16 @@
 package com.example.artitudo.model
 
 import com.example.artitudo.viewmodel.UserFolderNames
-import com.google.firebase.Timestamp // If you use Timestamp in Firestore
-
-// Assuming your Firestore structure for a user document is:
-// {
-//   "uid": "someUid",
-//   "username": "someUsername",
-//   "email": "user@example.com",
-//   "isAdmin": false,
-//   "createdAt": Timestamp,
-//   "folders": {
-//     "mastered": ["elementId1", "elementId2"],
-//     "favorites": ["elementId3"],
-//     "wishlist": []
-//   }
-// }
+import com.google.firebase.Timestamp
 
 data class User(
     val uid: String = "",
     val username: String = "",
     val email: String = "",
     val isAdmin: Boolean = false,
-    val createdAt: Timestamp? = null, // Or your specific Timestamp class if not Firebase's
+    val createdAt: Timestamp? = null,
     val folders: Map<String, List<String>> = mapOf(
-        UserFolderNames.MASTERED to emptyList(),   // Using your constants
+        UserFolderNames.MASTERED to emptyList(),
         UserFolderNames.FAVORITES to emptyList(),
         UserFolderNames.WISHLIST to emptyList()
     )
@@ -34,7 +20,7 @@ data class User(
         uid = "",
         username = "",
         email = "",
-        isAdmin = false, // Must also default here if User() is called by Firestore
+        isAdmin = false,
         createdAt = null,
         folders = mapOf(
             UserFolderNames.MASTERED to emptyList(),

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.graphics.lerp
 
 @Composable
 fun LoginScreen(
@@ -81,7 +82,7 @@ fun LoginScreen(
         Text(
             text = stringResource(id=R.string.label_username),
             color = textColor,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
@@ -115,7 +116,7 @@ fun LoginScreen(
         Text(
             text = stringResource(id=R.string.label_password),
             color = textColor,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
@@ -149,7 +150,6 @@ fun LoginScreen(
                     Icons.Filled.Visibility
                 else Icons.Filled.VisibilityOff
 
-                // Localized description for accessibility services
                 val description = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -160,7 +160,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button( // username, password
+        Button(
             onClick = {
                 focusManager.clearFocus()
                 authViewModel.login(username, password) {
@@ -178,14 +178,14 @@ fun LoginScreen(
             Text(
                 text = stringResource(id = R.string.button_login),
                 color = textColor,
-                fontSize = 16.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Medium
             )
         }
 
         authError?.let { error ->
             Text(error, color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(error) { // Auto-clear error after a delay or on next action
+            LaunchedEffect(error) {
                 delay(3000)
                 authViewModel.clearAuthError()
             }
@@ -193,11 +193,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Registration text
         Text(
             text = stringResource(id = R.string.text_dont_have_account),
             color = textColor,
-            fontSize = 14.sp,
+            fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
 
@@ -205,8 +204,8 @@ fun LoginScreen(
 
         Text(
             text = stringResource(id = R.string.link_register_here),
-            color = linkColor,
-            fontSize = 14.sp,
+            color = lerp(linkColor, Color.White, 0.3f),
+            fontSize = 18.sp,
             textAlign = TextAlign.Center,
             textDecoration = TextDecoration.Underline,
             modifier = Modifier.clickable {

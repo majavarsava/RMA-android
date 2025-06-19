@@ -1,10 +1,8 @@
 package com.example.artitudo.view
 
-import androidx.compose.animation.core.copy
 import com.example.artitudo.viewmodel.LevelerViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-import com.example.artitudo.ui.theme.backgroundColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,27 +18,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.artitudo.R
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.example.artitudo.ui.theme.lightPurple
-import com.example.artitudo.ui.theme.textColor
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,12 +38,10 @@ fun LevelerScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val pitch by levelerViewModel.pitch.collectAsState()
-    val roll by levelerViewModel.roll.collectAsState()
     val isLevel by levelerViewModel.isLevel.collectAsState()
     val currentBackgroundColor by levelerViewModel.levelerColor.collectAsState()
 
-    // Manage sensor listener lifecycle with screen lifecycle
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -71,7 +53,6 @@ fun LevelerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            // ViewModel's onCleared will also call stopListening, but this is good practice
             levelerViewModel.stopListening()
         }
     }
@@ -184,14 +165,12 @@ fun LevelerDisplay(pitch: Float, isLevel: Boolean, modifier: Modifier = Modifier
         modifier = modifier.clipToBounds(),
         contentAlignment = Alignment.Center
     ) {
-        // Box to hold the Logo and Text, this Box will be rotated
         Box(
             modifier = Modifier
                 .graphicsLayer(
-                    rotationZ = pitch + 90.0f // Rotate this Box (and its contents) by the pitch angle
-                    // rotation around Z-axis
+                    rotationZ = pitch + 90.0f
                 )
-                .wrapContentSize(), // Important so it doesn't try to fill max size before rotation
+                .wrapContentSize(),
             contentAlignment = Alignment.Center
         ) {
             Image(

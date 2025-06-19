@@ -27,13 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.artitudo.R
-import coil.compose.rememberAsyncImagePainter
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.semantics.error
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.artitudo.model.Element
 import com.example.artitudo.viewmodel.AuthViewModel
@@ -139,7 +136,7 @@ fun ElementsScreen(
                     )
                 }
             }
-            if (isLoading && filteredElements.isEmpty()) { // Show loading only if list is empty initially
+            if (isLoading && filteredElements.isEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 CircularProgressIndicator(color = Color(0xFF722F7F))
             } else if (error != null) {
@@ -295,11 +292,11 @@ fun ElementGrid(elements: List<Element>, onElementClick: (elementId: String) -> 
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(
-            items = elements, // The list of elements
-            key = { element -> element.id } // The stable key for each element
-        ) { element -> // The lambda directly gives you each element
+            items = elements,
+            key = { element -> element.id }
+        ) { element ->
             GridElementCard(element = element) {
-                onElementClick(element.id) // Assuming Element has an 'id' property
+                onElementClick(element.id)
             }
         }
     }
@@ -323,8 +320,8 @@ fun GridElementCard(element: Element, onElementClick: () -> Unit) {
                 contentDescription = element.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                placeholder = painterResource(id = R.drawable.logo), // Add a placeholder
-                error = painterResource(id = R.drawable.logo) // Add an error image
+                placeholder = painterResource(id = R.drawable.logo),
+                error = painterResource(id = R.drawable.logo)
             )
             Box(
                 modifier = Modifier

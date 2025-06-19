@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -85,7 +86,7 @@ fun RegisterScreen(
         Text(
             text = stringResource(id = R.string.label_username),
             color = textColor,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
@@ -119,7 +120,7 @@ fun RegisterScreen(
         Text(
             text = stringResource(id = R.string.label_password),
             color = textColor,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
@@ -153,7 +154,6 @@ fun RegisterScreen(
                     Icons.Filled.Visibility
                 else Icons.Filled.VisibilityOff
 
-                // Localized description for accessibility services
                 val description = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -167,7 +167,7 @@ fun RegisterScreen(
         Text(
             text = stringResource(id = R.string.label_confirm_password),
             color = textColor,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
@@ -201,7 +201,6 @@ fun RegisterScreen(
                     Icons.Filled.Visibility
                 else Icons.Filled.VisibilityOff
 
-                // Localized description for accessibility services
                 val description = if (confirmPasswordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
 
                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
@@ -230,14 +229,14 @@ fun RegisterScreen(
             Text(
                 text = stringResource(id = R.string.button_register),
                 color = textColor,
-                fontSize = 16.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Medium
             )
         }
 
         authError?.let { error ->
             Text(error, color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(error) { // Auto-clear error after a delay or on next action
+            LaunchedEffect(error) {
                 delay(3000)
                 authViewModel.clearAuthError()
             }
@@ -248,7 +247,7 @@ fun RegisterScreen(
         Text(
             text = stringResource(id = R.string.text_already_have_account),
             color = textColor,
-            fontSize = 14.sp,
+            fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
 
@@ -256,8 +255,8 @@ fun RegisterScreen(
 
         Text(
             text = stringResource(id = R.string.link_login_here),
-            color = linkColor,
-            fontSize = 14.sp,
+            color = lerp(linkColor, Color.White, 0.3f),
+            fontSize = 18.sp,
             textAlign = TextAlign.Center,
             textDecoration = TextDecoration.Underline,
             modifier = Modifier.clickable {

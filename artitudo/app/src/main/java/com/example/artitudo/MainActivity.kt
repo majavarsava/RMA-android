@@ -1,60 +1,33 @@
 package com.example.artitudo
 
-import android.icu.text.CaseMap
 import android.os.Bundle
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import com.example.artitudo.ui.theme.ArtitudoTheme
-import com.example.artitudo.view.ElementDetailScreen
-import com.example.artitudo.view.ElementsScreen
-import com.example.artitudo.view.FolderPageScreen
-import com.example.artitudo.view.LevelerScreen
-import com.example.artitudo.view.LoginScreen
-import com.example.artitudo.view.NewElementScreen
-import com.example.artitudo.view.RegisterScreen
-import com.example.artitudo.view.ProfilePageScreen
 
-// private lateinit var auth: FirebaseAuth;
-//// ...
-//// Initialize Firebase Auth
-//auth = Firebase.auth
-
-// public override fun onStart() {
-//    super.onStart()
-//    // Check if user is signed in (non-null) and update UI accordingly.
-//    val currentUser = auth.currentUser
-//    updateUI(currentUser)
-//}
-// Firebase.auth.signOut()
-
-// customToken?.let {
-//    auth.signInWithCustomToken(it)
-//            .addOnCompleteListener(this) { task ->
-//                if (task.isSuccessful) {
-//                    // Sign in success, update UI with the signed-in user's information
-//                    Log.d(TAG, "signInWithCustomToken:success")
-//                    val user = auth.currentUser
-//                    updateUI(user)
-//                } else {
-//                    // If sign in fails, display a message to the user.
-//                    Log.w(TAG, "signInWithCustomToken:failure", task.exception)
-//                    Toast.makeText(baseContext, "Authentication failed.",
-//                            Toast.LENGTH_SHORT).show()
-//                    updateUI(null)
-//                }
-//            }
-//}
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 class MainActivity : ComponentActivity() {
+
+    private var currentNavController: NavHostController? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -66,17 +39,58 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ){
-                    NavigationController()
+                    val navController = rememberNavController()
+                    this.currentNavController = navController
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        NotificationPermissionRequester()
+                    }
+                    LaunchedEffect(key1 = intent) {
+                        intent?.let {
+                            if (it.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) {
+                                handleNotificationIntent(it, navController)
+                            }
+                        }
+                    }
+                    NavigationController(navController = navController)
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { newIntent ->
+            currentNavController?.let { navController ->
+                handleNotificationIntent(newIntent, navController)
+            }
+        }
+    }
+
+    companion object {
+        fun handleNotificationIntent(intent: Intent, navController: NavHostController) {
+            val elementId = intent.getStringExtra("elementId_from_notification")
+            if (elementId != null) {
+                navController.navigate(Screen.ElementDetailScreen.createRoute(elementId)) {
+                    launchSingleTop = true
+                }
+                intent.removeExtra("elementId_from_notification")
             }
         }
     }
 }
 
-@Preview(showBackground = true)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun LoginScreenPreview() {
-    ArtitudoTheme {
-        LevelerScreen()
+fun NotificationPermissionRequester() {
+    val permissionState = rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+    LaunchedEffect(Unit) {
+        if (!permissionState.status.isGranted) {
+            Log.d("Permission", "Requesting POST_NOTIFICATIONS permission.")
+            permissionState.launchPermissionRequest()
+        } else {
+            Log.d("Permission", "POST_NOTIFICATIONS permission already granted.")
+        }
     }
 }

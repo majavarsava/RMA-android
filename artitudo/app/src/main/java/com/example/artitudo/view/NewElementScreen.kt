@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,9 +50,8 @@ fun NewElementScreen(
     var elementName by remember { mutableStateOf("") }
     var elementDescription by remember { mutableStateOf("") }
 
-    // --- Using your ElementLevel Enum ---
-    val levelOptionsFromEnum = remember { ElementLevel.values().toList() } // Get all defined levels
-    var selectedLevelEnum by remember { mutableStateOf<ElementLevel?>(null) } // Store the selected enum object or null
+    val levelOptionsFromEnum = remember { ElementLevel.values().toList() }
+    var selectedLevelEnum by remember { mutableStateOf<ElementLevel?>(null) }
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var videoUri by remember { mutableStateOf<Uri?>(null) }
@@ -76,7 +74,7 @@ fun NewElementScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         imageUri = uri
-        imageFileName = uri?.lastPathSegment ?: "" // Display the file name
+        imageFileName = uri?.lastPathSegment ?: ""
     }
 
     // --- Video Picker ---
@@ -84,7 +82,7 @@ fun NewElementScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         videoUri = uri
-        videoFileName = uri?.lastPathSegment ?: "" // Display the file name
+        videoFileName = uri?.lastPathSegment ?: ""
     }
 
     Box(
@@ -205,7 +203,7 @@ fun NewElementScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = selectedLevelEnum?.displayName ?: "", // Show display name or empty
+                    value = selectedLevelEnum?.displayName ?: "",
                     onValueChange = {},
                     readOnly = true,
                     placeholder = {
@@ -225,7 +223,7 @@ fun NewElementScreen(
                         cursorColor = buttonColor
                     ),
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryEditable)
                         .fillMaxWidth()
                         .height(56.dp)
                 )
@@ -273,11 +271,11 @@ fun NewElementScreen(
                     .height(56.dp)
                     .border(
                         width = 1.dp,
-                        color = if (imageUri != null) buttonColor else Color.Gray, // Check imageUri
+                        color = if (imageUri != null) buttonColor else Color.Gray,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .clickable {
-                        imagePickerLauncher.launch("image/*") // Launch image picker
+                        imagePickerLauncher.launch("image/*")
                     },
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -307,11 +305,11 @@ fun NewElementScreen(
                     .height(56.dp)
                     .border(
                         width = 1.dp,
-                        color = if (videoUri != null) buttonColor else Color.Gray, // Check videoUri
+                        color = if (videoUri != null) buttonColor else Color.Gray,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .clickable {
-                        videoPickerLauncher.launch("video/*") // Launch video picker
+                        videoPickerLauncher.launch("video/*")
                     },
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -338,11 +336,9 @@ fun NewElementScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button( // elementName, elementDescription, selectedLevel, imageFile, videoFile
+            Button(
                 onClick = {
                     uiErrorMessage = null
-                    // ViewModel will clear its own error in addNewElement
-
                     // --- Client-side validation ---
                     if (elementName.isBlank()) {
                         uiErrorMessage = stringErrorNameBlank
@@ -356,14 +352,12 @@ fun NewElementScreen(
                         name = elementName,
                         description = elementDescription,
                         level = selectedLevelEnum!!.displayName,
-                        levelNumber = selectedLevelEnum!!.levelNumber,
-                        imageLocalUri = imageUri, // Pass Uri
-                        videoLocalUri = videoUri, // Pass Uri
+                        imageLocalUri = imageUri,
+                        videoLocalUri = videoUri,
                         onSuccess = { generatedId ->
                             onElementCreated(generatedId)
                         },
                         onFailure = { detailedErrorFromVM ->
-                            // uiErrorMessage = detailedErrorFromVM // ViewModel error is already collected
                             println("Error from VM: $detailedErrorFromVM")
                         }
                     )
